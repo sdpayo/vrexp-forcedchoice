@@ -1,0 +1,1006 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Experimento de percepción sonora</title>
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; background:#222; color:#eee; display:flex; flex-direction:column; align-items:center; padding:20px; }
+    .container { max-width:900px; width:100%; }
+    .screen { margin:20px 0; padding:20px; background:#2b2b2b; border-radius:8px; text-align:center; width:100%; }
+    button { font-size:18px; padding:10px 18px; border-radius:6px; cursor:pointer; }
+    input[type="text"], input[type="number"], select, textarea { width:90%; font-size:16px; padding:8px 10px; border-radius:6px; border:1px solid #666; background:#111; color:#fff; margin-top:8px; }
+    label { display:block; text-align:left; margin:8px 5%; color:#ddd; }
+    .hidden { display:none; }
+    .small { font-size:14px; color:#bbb; margin-top:8px; }
+    .countdown { font-size:36px; font-weight:700; margin-top:12px; }
+    .muted { color:#aaa; font-size:13px; margin-top:8px; }
+    .controls { display:flex; gap:12px; justify-content:center; align-items:center; margin-top:12px; }
+    .row { display:flex; gap:12px; justify-content:center; align-items:center; margin-top:8px; flex-wrap:wrap; }
+    .icon { width:28px; height:28px; vertical-align:middle; margin-right:8px; filter:invert(1); }
+    .option-box { display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:8px; background:#1f1f1f; border:1px solid #3a3a3a; cursor:pointer; }
+    .inline { display:inline-block; }
+    .warning-box { background:#3d1f1f; border:2px solid #ff4444; border-radius:8px; padding:16px; margin:16px 5%; text-align:left; }
+    .warning-box h3 { color:#ff6666; margin:0 0 12px 0; display:flex; align-items:center; gap:8px; font-size:18px; }
+    .warning-box ul { margin:8px 0 0 0; color:#ffb3b3; }
+    .warning-box li { margin:6px 0; }
+    .form-section { background:#1f1f1f; border:1px solid #3a3a3a; border-radius:8px; padding:16px; margin:16px 0; }
+    .form-section h3 { color:#4a9eff; font-size:16px; margin:0 0 16px 0; text-align:center; border-bottom:1px solid #3a3a3a; padding-bottom:8px; }
+    .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    @media (max-width: 768px) { .form-grid { grid-template-columns:1fr; } }
+    .form-section { background:#1f1f1f; border:1px solid #3a3a3a; border-radius:8px; padding:16px; margin:16px 0; }
+    .form-section h3 { color:#4a9eff; font-size:16px; margin:0 0 16px 0; text-align:center; border-bottom:1px solid #3a3a3a; padding-bottom:8px; }
+    .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    @media (max-width: 768px) { .form-grid { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Experimento de percepción sonora</h1>
+
+    <!-- PANTALLA DE BIENVENIDA -->
+    <div id="welcome" class="screen">
+      <p>Este experimento estudia <b>cómo percibimos la distancia de una fuente sonora</b>.<br>
+      Es realizado por investigadores de la <b>Universidad Nacional de Quilmes (UNQ)</b> y la <b>Universidad Católica de Salta (UCASAL).</b></p>
+
+      <h2>¿En qué consiste?</h2>
+      <p>Vas a escuchar <b>48 sonidos</b> divididos en <b>3 bloques</b> de <b>16 estímulos</b>.<br>
+      Entre cada bloque habrá un descanso de <b>30 segundos</b>.<br>
+      Duración total aproximada: <b>8 minutos</b>.</p>
+
+      <h2>¿Qué tenés que hacer?</h2>
+      <p>Luego de escuchar cada sonido, deberás <b>indicar la distancia</b> en metros (ej. 2.5).<br>
+
+        <h2>Requisitos</h2>
+      <ul style="text-align:left; display:inline-block; margin-top: -8px;">
+        <li><b>Usar auriculares.</b></li>
+        <li>Ambiente lo más silencioso posible.</li>
+        <li>Silenciar notificaciones.</li>
+      </ul>
+
+      <div class="warning-box">
+        <h3>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ff6666" stroke-width="2">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3.05h16.94a2 2 0 0 0 1.71-3.05L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          Importante
+        </h3>
+        <p style="margin:0 0 8px 0; color:#ffb3b3;">El volumen de los sonidos varía al azar entre ensayos.</p>
+        <ul>
+          <li>No uses el volumen para estimar la distancia</li>
+          <li>No ajustes el volumen durante el experimento</li>
+          <li>Basate en otras características del sonido</li>
+        </ul>
+      </div>
+
+      <div class="controls">
+        <button id="btnStart">Continuar</button>
+      </div>
+
+      <p class="small">Antes del ajuste de volumen verás un breve cuestionario demográfico.</p>
+    </div>
+
+    <!-- PANTALLA DEMOGRÁFICA (NUEVA) -->
+    <div id="demographicsScreen" class="screen hidden">
+      <h2>Cuestionario Demográfico</h2>
+      <p class="small" style="margin-top:-8px;">Estos datos son anónimos y nos ayudan a contextualizar los resultados.</p>
+
+      <!-- Sección: Datos Personales -->
+      <div class="form-section">
+        <h3>📋 Datos Personales</h3>
+        <div class="form-grid">
+          <label>Edad
+            <input id="dem_age" type="number" min="14" max="120" placeholder="Ej. 28" />
+          </label>
+
+          <label>Género
+            <select id="dem_gender">
+              <option value="">-- selecciona --</option>
+              <option value="Varon">Varón</option>
+              <option value="Mujer">Mujer</option>
+              <option value="LGTBIQ+">LGTBIQ+</option>
+              <option value="Otrx">Otrx</option>
+              <option value="Prefiero no decir">Prefiero no decir</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <!-- Sección: Información Auditiva -->
+      <div class="form-section">
+        <h3>🎵 Información Auditiva</h3>
+        
+        <label>Formación musical
+          <div class="row">
+            <label class="option-box"><input id="dem_music_yes" name="music" type="radio" value="Si" /> Sí</label>
+            <label class="option-box"><input id="dem_music_no" name="music" type="radio" value="No" /> No</label>
+          </div>
+          <div id="musicYearsRow" class="hidden">
+            <input id="dem_music_years" type="number" min="0" placeholder="Años de formación (ej. 5)" />
+          </div>
+        </label>
+
+        <label>¿Tiene algún impedimento auditivo?
+          <select id="dem_hearing">
+            <option value="">-- selecciona --</option>
+            <option value="No">No</option>
+            <option value="Si leve">Sí — leve</option>
+            <option value="Si moderado">Sí — moderado</option>
+            <option value="Si severo">Sí — severo</option>
+          </select>
+        </label>
+      </div>
+
+      <!-- Sección: Equipo Técnico -->
+      <div class="form-section">
+        <h3>🎧 Equipo Técnico</h3>
+        
+        <label>Dispositivo que está usando
+          <select id="dem_device">
+            <option value="">-- selecciona --</option>
+            <option value="Notebook/PC">Notebook / PC</option>
+            <option value="Tablet">Tablet</option>
+            <option value="Telefono celular">Teléfono celular</option>
+          </select>
+        </label>
+
+        <label>Auriculares (tipo)</label>
+        <div class="row" style="justify-content:center; margin-bottom:12px;">
+          <label class="option-box"><input type="radio" name="headphone_type" value="In Ear" /> <img class="icon" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'><path d='M7 7c1.657 0 3-1.343 3-3S8.657 1 7 1 4 2.343 4 4s1.343 3 3 3zm10 0c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM7 9c-2.761 0-5 2.239-5 5v5h2v-5c0-1.654 1.346-3 3-3h2v-2H7zm10 0c-2.654 0-4 1.346-4 3v5h2v-5c0-1.761 2.239-3 4-3h-2v-2h0z'/></svg>" alt="InEar" /> In Ear</label>
+
+          <label class="option-box"><input type="radio" name="headphone_type" value="Circumaural" /> <img class="icon" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'><path d='M12 2C7 2 3.5 5.5 3.5 10.5V16c0 2.485 2.015 4.5 4.5 4.5h.5v-6H8c-.552 0-1-.447-1-1V10c0-2.761 2.239-5 5-5s5 2.239 5 5v3.5c0 .553-.448 1-1 1h-1.5v6h.5c2.485 0 4.5-2.015 4.5-4.5v-5.5C20.5 5.5 17 2 12 2z'/></svg>" alt="OverEar" /> Circumaurales</label>
+        </div>
+
+        <label>Conexión
+          <div class="row">
+            <label class="option-box"><input type="radio" name="connection" value="Bluetooth" /> Bluetooth</label>
+            <label class="option-box"><input type="radio" name="connection" value="Cable" /> Con cable</label>
+          </div>
+        </label>
+
+        <label>Cancelación de ruido activo (ANC)
+          <select id="dem_anc">
+            <option value="">-- selecciona --</option>
+            <option value="No">No</option>
+            <option value="Si">Sí</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="controls">
+        <button id="btnDemSubmit">Enviar y continuar</button>
+      </div>
+    </div>
+
+    <!-- PANTALLA DE AJUSTE DE VOLUMEN -->
+    <div id="volumeScreen" class="screen hidden">
+      <h2>Ajuste inicial de volumen</h2>
+      <p>Al comenzar, vas a escuchar un sonido de referencia para ajustar la intensidad de tus auriculares.<br>
+      Este va a ser el volumen más alto que escuches durante todo el experimento, por lo que es importante que lo ajustes a un nivel cómodo.<br>
+      ⚠️ Una vez ajustado, no modifiques el volumen de tus auriculares durante el resto de la actividad.</p>
+
+      <div class="controls">
+        <button id="playRefBtn">Reproducir referencia (play)</button>
+        <button id="btnVolumeContinue" disabled>He ajustado el volumen — Continuar</button>
+      </div>
+      <p class="small">El sonido de referencia es ruido rosa (pico -6 dB).</p>
+
+      <!-- Lugar para mostrar el participant id permanentemente -->
+      <p id="participantIdNotice" class="small" style="font-weight:700"></p>
+    </div>
+
+    <!-- BLOQUES / TRIAL / BREAK / END (sin etiquetas FLAT/LOW/HIGH en título) -->
+    <div id="blockScreen" class="screen hidden">
+      <p id="blockTitle" style="font-size:20px;font-weight:700"></p>
+      <p id="blockInfo" class="small"></p>
+      <button id="btnStartBlock">Comenzar Bloque</button>
+    </div>
+
+    <div id="trialScreen" class="screen hidden">
+      <p id="trialNumber" style="font-weight:600"></p>
+      <audio id="audioPlayer" preload="auto"></audio>
+      <div style="margin-top:12px;">
+        <input id="txtResponse" type="number" placeholder="Escribe tu respuesta aquí (metros, ej. 2.5)" autocomplete="off" />
+      </div>
+      <div style="margin-top:12px;">
+        <button id="btnNext">Siguiente</button>
+      </div>
+      <p id="statusLine" class="small"></p>
+    </div>
+
+    <div id="breakScreen" class="screen hidden">
+      <p id="breakMessage" style="font-size:18px; font-weight:600">Descanso: preparate para el siguiente bloque</p>
+      <div class="countdown" id="countdown">30</div>
+      <div style="margin-top:12px;">
+        <button id="btnContinue" disabled>Continuar</button>
+      </div>
+      <p id="breakStatus" class="small"></p>
+    </div>
+
+    <div id="endScreen" class="screen hidden">
+      <p id="endMessage" style="font-size:18px; font-weight:600">¡Gracias! Ya terminaste.</p>
+      <p id="endDetail" class="small">Por favor NO cierres esta pestaña hasta que todos los datos se hayan enviado.</p>
+      <p id="uploadStatus" class="muted">Cargando... (<span id="pendingCount">0</span> respuestas pendientes)</p>
+      <p id="finalCloseNotice" class="small hidden">Ahora sí: ya podés cerrar esta pestaña. ¡Muchas gracias!</p>
+    </div>
+  </div>
+
+<script>
+/* CONFIG */
+const ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbz0I-ggQojQf2_vMNrVzPjYdf5CMV-4nVHXN79CpN4AtgCElkFsx27YwUA-yATLU70i/exec";
+const SECRET_TOKEN = "PsychoTry_2";
+const VALIDATE_FILES = false;
+const BREAK_SECONDS = 30;
+
+/* BLOCK ORDER COUNTERBALANCING */
+const BLOCK_PERMUTATIONS = [
+  ['flat', 'low', 'high'],   // ID 1, 7, 13, etc.
+  ['flat', 'high', 'low'],   // ID 2, 8, 14, etc.
+  ['low', 'high', 'flat'],   // ID 3, 9, 15, etc.
+  ['low', 'flat', 'high'],   // ID 4, 10, 16, etc.
+  ['high', 'low', 'flat'],   // ID 5, 11, 17, etc.
+  ['high', 'flat', 'low']    // ID 6, 12, 18, etc.
+];
+
+function getBlockOrder(participantId) {
+  const permIndex = (participantId - 1) % 6;
+  return BLOCK_PERMUTATIONS[permIndex];
+}
+
+function getBlockNumber(blockType) {
+  // Mapea flat -> 1, low -> 2, high -> 3
+  const mapping = { 'flat': 1, 'low': 2, 'high': 3 };
+  return mapping[blockType] || 1;
+}
+
+/* RUNTIME STATE */
+let participant_id = null;
+let seed = null;
+let blocks = [];
+let blockIndex = 0;
+let withinIndex = -1;
+let currentBlockItems = [];
+let startTime = 0;
+
+/* Buffers y sets */
+let blockBuffer = [];
+const blockQueuedCsv = new Set();
+const globalPresentedCsv = new Set();
+const globalSentCsv = new Set();
+
+/* Upload tracking */
+let pendingUploadsCount = 0;
+let endScreenShown = false;
+
+/* Promise para condiciones (se lanza al presionar Start) */
+let conditionsPromise = null;
+
+/* WebAudio para ruido de referencia */
+let audioCtx = null;
+let refSource = null;
+let refBuffer = null;
+
+/* UTILITIES (parseCSV, shuffleCrypto, encodePath, fileExists, getNextParticipantId, sendToSheet, sendSessionMetadata)
+   Reuso las funciones anteriores: si ya existían en tu versión, estas definiciones pueden reemplazarlas.
+*/
+
+function parseCSV(text) {
+  const lines = text.trim().split(/\r?\n/).map(l=>l.trim()).filter(l=>l.length>0);
+  if (!lines.length) return [];
+  const headers = lines[0].split(',').map(h=>h.trim());
+  const res = [];
+  for (let i=1;i<lines.length;i++){
+    const cols = lines[i].split(',').map(c=>c.trim());
+    const row = {};
+    for (let j=0;j<headers.length;j++){
+      row[headers[j]] = cols[j] !== undefined ? cols[j].replace(/^"|"$/g,'') : '';
+    }
+    res.push(row);
+  }
+  return res;
+}
+
+function shuffleCrypto(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const u = new Uint32Array(1);
+    window.crypto.getRandomValues(u);
+    const j = Math.floor((u[0] / 4294967296) * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function encodePath(path) {
+  if (!path) return path;
+  try {
+    const url = new URL(path, window.location.href);
+    const pathname = url.pathname.split('/').map(s => encodeURIComponent(decodeURIComponent(s))).join('/');
+    return pathname + (url.search || '') + (url.hash || '');
+  } catch(e) {
+    return path.split('/').map(seg => encodeURIComponent(decodeURIComponent(seg))).join('/');
+  }
+}
+
+async function fileExists(path) {
+  if (!VALIDATE_FILES) return true;
+  const url = encodePath(path);
+  try { const h = await fetch(url, {method:'HEAD'}); if (h && (h.status===200||h.status===206)) return true; } catch(e){}
+  try { const g = await fetch(url, {method:'GET', headers:{Range:'bytes=0-1'}}); if (g && (g.status===200||g.status===206)) return true; } catch(e){}
+  return false;
+}
+
+function getNextParticipantId() {
+  try {
+    const key = 'psycho_next_participant_id';
+    let next = Number(localStorage.getItem(key)) || 1;
+    if (!Number.isInteger(next) || next < 1) next = 1;
+    const assigned = next;
+    let newNext = next + 1;
+    if (newNext > 99) newNext = 1;
+    localStorage.setItem(key, String(newNext));
+    return assigned;
+  } catch(e) { return Math.floor(Math.random()*99)+1; }
+}
+
+function sendToSheet(payload) {
+  if (!ENDPOINT_URL || !ENDPOINT_URL.startsWith('https')) {
+    console.warn('ENDPOINT_URL no configurado');
+    return Promise.resolve({status:'no-endpoint'});
+  }
+  const form = new URLSearchParams();
+  for (const k in payload) if (payload.hasOwnProperty(k) && payload[k] !== undefined && payload[k] !== null) form.append(k, String(payload[k]));
+  return fetch(ENDPOINT_URL, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body: form.toString() })
+    .then(r => r.text().then(txt => { try { return JSON.parse(txt); } catch(e) { return { status:'ok', raw: txt }; } }));
+}
+
+function sendSessionMetadata(pid, seed, blocks) {
+  try {
+    const flat = [];
+    blocks.forEach((b,bi) => b.items.forEach(it => {
+      // excluir items de entrenamiento (training) del registro de session metadata
+      if (it && it.training) return;
+      flat.push(`${bi+1}:${it.csvIndex}`);
+    }));
+    const payload = { token: SECRET_TOKEN, participant_id: pid, event_type: 'session', seed: seed, selected: flat.join(';'), timestamp: new Date().toISOString() };
+    sendToSheet(payload).then(r => console.log('Session metadata saved', r)).catch(e => console.warn('Session metadata failed', e));
+  } catch(e) { console.warn(e); }
+}
+
+/* PREPARAR BLOQUES (modificado para insertar 4 trials de entrenamiento por bloque) */
+async function loadConditionsAndPrepareBlocks() {
+  blocks = [];
+  blockBuffer = [];
+  blockQueuedCsv.clear();
+  globalPresentedCsv.clear();
+
+  try {
+    const resp = await fetch('conditions.csv', { cache:'no-store' });
+    if (!resp.ok) throw new Error('No se pudo cargar conditions.csv: ' + resp.status);
+    const parsed = parseCSV(await resp.text());
+
+    const pathObjs = parsed.map((r, idx) => {
+      const p = r.stimuli || r.audioFile || r.audio || Object.values(r)[0] || '';
+      return { path: p, csvIndex: idx };
+    }).filter(o => o.path && o.path.length);
+
+    const groups = {};
+    for (const obj of pathObjs) {
+      const p = obj.path;
+      const m = p.match(/_conv_rir_(flat|low|high)(\d+)/i);
+      if (m) {
+        const type = m[1].toLowerCase();
+        const dist = m[1].toLowerCase() + m[2];
+        groups[type] = groups[type] || {};
+        groups[type][dist] = groups[type][dist] || [];
+        groups[type][dist].push(obj);
+      } else {
+        const type = /flat/i.test(p) ? 'flat' : (/low/i.test(p) ? 'low' : (/high/i.test(p) ? 'high' : 'other'));
+        const dm = p.match(/(flat|low|high)(\d+)/i);
+        const dist = dm ? dm[1].toLowerCase()+dm[2] : (type + '_0');
+        groups[type] = groups[type] || {};
+        groups[type][dist] = groups[type][dist] || [];
+        groups[type][dist].push(obj);
+      }
+    }
+
+    // Orden de los bloques: contrabalanceado según participant_id
+    const blockOrder = getBlockOrder(participant_id);
+    const prepared = [];
+    const globalUsedCsv = new Set(Array.from(globalSentCsv));
+
+    for (const type of blockOrder) {
+      if (!groups[type]) continue;
+      const distances = Object.keys(groups[type]).sort();
+      const allCandidates = [].concat(...distances.map(d => groups[type][d].slice()));
+      const target = Math.min(12, allCandidates.length);
+      const picksByDistance = {};
+
+      for (const d of distances) {
+        const candidates = shuffleCrypto(groups[type][d].slice());
+        const chosen = [];
+        for (const c of candidates) {
+          if (chosen.length >= 3) break;
+          if (globalUsedCsv.has(c.csvIndex)) continue;
+          if (!(await fileExists(c.path))) continue;
+          chosen.push(c);
+          globalUsedCsv.add(c.csvIndex);
+        }
+        picksByDistance[d] = chosen;
+      }
+
+      let picksFlat = [].concat(...Object.values(picksByDistance));
+      if (picksFlat.length < target) {
+        const pool = shuffleCrypto(allCandidates.slice());
+        for (const p of pool) {
+          if (picksFlat.length >= target) break;
+          if (globalUsedCsv.has(p.csvIndex)) continue;
+          if (!(await fileExists(p.path))) continue;
+          picksFlat.push(p);
+          globalUsedCsv.add(p.csvIndex);
+        }
+      }
+
+      const blockItems = shuffleCrypto(picksFlat);
+
+      // --- generar 4 trials de entrenamiento (no se guardan en sheets) y prependerlos ---
+      const trainingItems = [];
+      for (let ti = 1; ti <= 4; ti++) {
+        // Ruta siguiendo el patrón observado en conditions.csv
+        const trainPath = `stimuli/Vidrios_Conv_${ti}_conv_rir_${type}${ti}.wav_rov+00dB.wav`;
+        trainingItems.push({ path: trainPath, csvIndex: `train_${type}_${ti}`, training: true });
+      }
+      // Randomizar el orden de los trials de entrenamiento
+      const shuffledTraining = shuffleCrypto(trainingItems);
+      const itemsWithTraining = shuffledTraining.concat(blockItems);
+
+      prepared.push({ type, items: itemsWithTraining, debug: picksByDistance });
+      console.log(`Block ${type}: target=${target}, selected=${blockItems.length} (plus ${trainingItems.length} training)`);
+    }
+
+    blocks = prepared;
+
+    const seen = new Set(); const dups = [];
+    blocks.forEach(b => b.items.forEach(it => { if (seen.has(it.csvIndex)) dups.push(it.csvIndex); else seen.add(it.csvIndex); }));
+    if (dups.length) console.error('DUPLICATES DETECTED in prepared blocks:', dups);
+    else console.log('Prepared blocks OK. Total selected:', seen.size);
+
+    blocks.forEach((b,bi) => {
+      console.group(`Block ${bi+1} (${b.type}) — ${b.items.length} items (incl. training)`);
+      b.items.forEach((it,i) => console.log(`  [${i+1}] csvIndex:${it.csvIndex} path:${it.path} ${it.training ? '(TRAINING)' : ''}`));
+      console.groupEnd();
+    });
+
+    // enviar metadata de sesión sin incluir training trials
+    sendSessionMetadata(participant_id, seed, blocks);
+
+  } catch (err) {
+    console.error('Error preparando bloques:', err);
+    alert('Error preparando bloques: ' + (err && err.message ? err.message : err));
+  }
+}
+
+/* FLUJO INICIAL: btnStart -> asignar participant_id+seed -> lanzar loadConditionsAndPrepareBlocks en background -> mostrar encuesta demográfica */
+document.getElementById('btnStart').addEventListener('click', async () => {
+  participant_id = getNextParticipantId();
+  const rnd = (window.crypto && crypto.getRandomValues) ? crypto.getRandomValues(new Uint32Array(2)) : [Math.floor(Math.random()*1e9),0];
+  seed = `${participant_id}-${performance.now()}-${rnd[0]}-${rnd[1]}`;
+  console.log('START session -> participant_id:', participant_id, ' seed:', seed);
+
+  // iniciar carga de conditions en background (no await)
+  conditionsPromise = loadConditionsAndPrepareBlocks();
+
+  // deshabilitar botón y mostrar pantalla demográfica
+  document.getElementById('btnStart').disabled = true;
+  showDemographicsScreen();
+});
+
+/* Mostrar pantalla demográfica */
+function showDemographicsScreen() {
+  document.getElementById('welcome').classList.add('hidden');
+  document.getElementById('demographicsScreen').classList.remove('hidden');
+  document.getElementById('volumeScreen').classList.add('hidden');
+  document.getElementById('blockScreen').classList.add('hidden');
+  document.getElementById('trialScreen').classList.add('hidden');
+  document.getElementById('breakScreen').classList.add('hidden');
+  document.getElementById('endScreen').classList.add('hidden');
+  // enable submit
+  document.getElementById('btnDemSubmit').disabled = false;
+}
+
+// --- showVolumeScreen: mostrar pantalla y el ID del participante ---
+function showVolumeScreen() {
+  try {
+    document.getElementById('welcome')?.classList.add('hidden');
+    document.getElementById('demographicsScreen')?.classList.add('hidden');
+    document.getElementById('blockScreen')?.classList.add('hidden');
+    document.getElementById('trialScreen')?.classList.add('hidden');
+    document.getElementById('breakScreen')?.classList.add('hidden');
+    document.getElementById('endScreen')?.classList.add('hidden');
+
+    const volEl = document.getElementById('volumeScreen');
+    if (volEl) volEl.classList.remove('hidden');
+
+    // preparar controles de la pantalla de volumen
+    const playBtn = document.getElementById('playRefBtn');
+    const contBtn = document.getElementById('btnVolumeContinue');
+    if (playBtn) playBtn.disabled = false;
+    if (contBtn) contBtn.disabled = true;
+
+    // mostrar el participant_id permanentemente "Tu ID es: <id>"
+    const pidEl = document.getElementById('participantIdNotice');
+    if (pidEl) {
+      pidEl.textContent = participant_id ? `Tu ID es: ${participant_id}` : '';
+    } else {
+      // crearlo si no existe (fallback)
+      const el = document.createElement('p');
+      el.id = 'participantIdNotice';
+      el.className = 'small';
+      el.style.fontWeight = '700';
+      el.textContent = participant_id ? `Tu ID es: ${participant_id}` : '';
+      volEl.insertBefore(el, volEl.firstChild);
+    }
+  } catch (err) {
+    console.warn('showVolumeScreen fallback error:', err);
+  }
+}
+window.showVolumeScreen = showVolumeScreen;
+
+/* Evento: interacción dinámica en formación musical */
+document.getElementById('dem_music_yes').addEventListener('change', () => {
+  document.getElementById('musicYearsRow').classList.remove('hidden');
+});
+document.getElementById('dem_music_no').addEventListener('change', () => {
+  document.getElementById('musicYearsRow').classList.add('hidden');
+  document.getElementById('dem_music_years').value = '';
+});
+
+/* Envío de datos demográficos al presionar btnDemSubmit */
+document.getElementById('btnDemSubmit').addEventListener('click', async () => {
+  const btn = document.getElementById('btnDemSubmit');
+  btn.disabled = true;
+
+  // recolectar campos
+  const age = document.getElementById('dem_age').value;
+  const gender = document.getElementById('dem_gender').value;
+  const music = document.querySelector('input[name="music"]:checked') ? document.querySelector('input[name="music"]:checked').value : '';
+  const musicYears = document.getElementById('dem_music_years').value || '';
+  const hearing = document.getElementById('dem_hearing').value;
+  const device = document.getElementById('dem_device').value;
+  const headphoneType = document.querySelector('input[name="headphone_type"]:checked') ? document.querySelector('input[name="headphone_type"]:checked').value : '';
+  const connection = document.querySelector('input[name="connection"]:checked') ? document.querySelector('input[name="connection"]:checked').value : '';
+  const anc = document.getElementById('dem_anc').value;
+
+  // validación mínima (edad, dispositivo)
+  if (!age || age <= 0) { alert('Por favor ingresá una edad válida.'); btn.disabled = false; return; }
+  if (!device) { alert('Por favor seleccioná el dispositivo que estás usando.'); btn.disabled = false; return; }
+
+  // construir payload para hoja "datos_demograficos"
+  const payload = {
+    token: SECRET_TOKEN,
+    participant_id: participant_id,
+    event_type: 'datos_demograficos', // importante para la hoja destino
+    seed: seed,
+    edad: age,
+    genero: gender,
+    formacion_musical: music,
+    formacion_musical_anos: musicYears,
+    impedimento_auditivo: hearing,
+    dispositivo: device,
+    tipo_auriculares: headphoneType,
+    conexion_auriculares: connection,
+    anc: anc,
+    timestamp: new Date().toISOString()
+  };
+
+  // marcar como pendiente de upload (para que la pantalla final cuente esto)
+  pendingUploadsCount += 1;
+  updateUploadUI();
+
+  try {
+    const res = await sendToSheet(payload);
+    console.log('Demographics saved', res);
+  } catch (e) {
+    console.warn('Error saving demographics', e);
+  } finally {
+    // decrement pending counter (enviado o no)
+    pendingUploadsCount = Math.max(0, pendingUploadsCount - 1);
+    updateUploadUI();
+  }
+
+  // avanzar a pantalla de ajuste de volumen
+  showVolumeScreen();
+});
+
+/* Lógica del ruido de referencia (WebAudio) */
+function ensureAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+
+async function prepareRefBuffer(durationSec = 3) {
+  ensureAudioCtx();
+  if (refBuffer) return refBuffer;
+  const sr = audioCtx.sampleRate || 44100;
+  const len = Math.floor(durationSec * sr);
+  const buffer = audioCtx.createBuffer(1, len, sr);
+  const data = buffer.getChannelData(0);
+
+  // white noise
+  for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1);
+
+  // simple pink-ish filter cascade
+  let b0=0,b1=0,b2=0,b3=0;
+  for (let i=0;i<len;i++){
+    const white = data[i];
+    b0 = 0.99886*b0 + white*0.0555179;
+    b1 = 0.99332*b1 + white*0.0750759;
+    b2 = 0.96900*b2 + white*0.1538520;
+    b3 = 0.86650*b3 + white*0.3104856;
+    const pink = b0 + b1 + b2 + b3 + white*0.5362;
+    data[i] = pink;
+  }
+
+  // normalize to peak and scale to -6 dB peak
+  let peak = 0;
+  for (let i=0;i<len;i++) peak = Math.max(peak, Math.abs(data[i]));
+  if (peak <= 0) peak = 1;
+  const targetPeakGain = Math.pow(10, -6/20); // ~0.501187
+  const scale = targetPeakGain / peak;
+  for (let i=0;i<len;i++) data[i] *= scale;
+
+  refBuffer = buffer;
+  return refBuffer;
+}
+
+function stopRefIfPlaying() {
+  if (refSource) {
+    try { refSource.stop(); } catch(e){}
+    refSource.disconnect();
+    refSource = null;
+  }
+}
+
+async function playRefOnce() {
+  ensureAudioCtx();
+  try {
+    stopRefIfPlaying();
+    const buf = await prepareRefBuffer(3);
+    refSource = audioCtx.createBufferSource();
+    refSource.buffer = buf;
+    const gainNode = audioCtx.createGain();
+    gainNode.gain.value = 1.0;
+    refSource.connect(gainNode).connect(audioCtx.destination);
+    refSource.onended = () => {
+      refSource = null;
+      document.getElementById('btnVolumeContinue').disabled = false;
+    };
+    refSource.start();
+    setTimeout(() => { document.getElementById('btnVolumeContinue').disabled = false; }, 3100);
+  } catch (e) {
+    console.error('Error reproducir referencia', e);
+    document.getElementById('btnVolumeContinue').disabled = false;
+  }
+}
+
+document.getElementById('playRefBtn').addEventListener('click', async () => {
+  try { ensureAudioCtx(); if (audioCtx.state === 'suspended') await audioCtx.resume(); } catch(e){console.warn(e);}
+  document.getElementById('playRefBtn').disabled = true;
+  await playRefOnce();
+  document.getElementById('playRefBtn').disabled = false;
+});
+
+/* Al presionar continuar tras volumen: detener referencia y esperar condiciones cargadas */
+document.getElementById('btnVolumeContinue').addEventListener('click', async () => {
+  stopRefIfPlaying();
+  if (conditionsPromise) await conditionsPromise;
+  // iniciar bloque 1
+  blockIndex = 0;
+  withinIndex = -1;
+  currentBlockItems = blocks[blockIndex] ? blocks[blockIndex].items || [] : [];
+  showBlockScreen();
+});
+
+/* Mostrar pantalla de bloque: título simple "Bloque N" (sin FLAT/LOW/HIGH) */
+function showBlockScreen() {
+  document.getElementById('welcome').classList.add('hidden');
+  document.getElementById('demographicsScreen').classList.add('hidden');
+  document.getElementById('volumeScreen').classList.add('hidden');
+  document.getElementById('blockScreen').classList.remove('hidden');
+  document.getElementById('trialScreen').classList.add('hidden');
+  document.getElementById('breakScreen').classList.add('hidden');
+  document.getElementById('endScreen').classList.add('hidden');
+
+  document.getElementById('blockTitle').textContent = `Bloque ${blockIndex+1}`;
+  document.getElementById('blockInfo').textContent = `Este bloque contiene ${blocks[blockIndex] ? blocks[blockIndex].items.length : 0} ensayos.`;
+  document.getElementById('btnStartBlock').disabled = false;
+}
+
+/* Iniciar bloque */
+document.getElementById('btnStartBlock').addEventListener('click', async () => {
+  const btn = document.getElementById('btnStartBlock');
+  btn.disabled = true;
+  if (conditionsPromise) await conditionsPromise;
+  currentBlockItems = blocks[blockIndex] ? blocks[blockIndex].items || [] : [];
+  withinIndex = -1;
+  blockBuffer = []; blockQueuedCsv.clear();
+  console.log(`--- STARTING BLOCK ${blockIndex+1} items:${currentBlockItems.length} ---`);
+  nextTrial();
+});
+
+/* Debounce next */
+let nextLock = false;
+document.getElementById('btnNext').addEventListener('click', () => {
+  if (nextLock) { console.warn('Next click ignored (debounce)'); return; }
+  
+  // Validar que el campo de respuesta tenga un valor numérico
+  const input = document.getElementById('txtResponse');
+  const value = input.value.trim();
+  
+  if (!value) {
+    alert('Por favor ingresá un valor numérico para la distancia estimada.');
+    input.focus();
+    return;
+  }
+  
+  // Validar que sea numérico (puede incluir punto decimal)
+  if (!/^\d+(\.\d+)?$/.test(value)) {
+    alert('Por favor ingresá un valor numérico válido (ej. 2.5).');
+    input.focus();
+    return;
+  }
+  
+  nextLock = true;
+  setTimeout(() => { nextLock = false; }, 350);
+  nextTrial();
+});
+
+/* Helpers upload UI */
+function updateUploadUI() {
+  const pendingEl = document.getElementById('pendingCount');
+  if (pendingEl) pendingEl.textContent = String(pendingUploadsCount);
+  if (!endScreenShown) return;
+  const endDetail = document.getElementById('endDetail');
+  const finalCloseNotice = document.getElementById('finalCloseNotice');
+  const endMessage = document.getElementById('endMessage');
+  if (pendingUploadsCount > 0) {
+    if (endDetail) endDetail.textContent = 'Por favor NO cierres esta pestaña hasta que todos los datos se hayan enviado.';
+    if (finalCloseNotice) finalCloseNotice.classList.add('hidden');
+    if (endMessage) endMessage.textContent = '¡Gracias! Enviando datos...';
+  } else {
+    if (endDetail) endDetail.textContent = 'Todos los datos fueron enviados correctamente.';
+    if (finalCloseNotice) finalCloseNotice.classList.remove('hidden');
+    if (endMessage) endMessage.textContent = '¡Gracias!';
+  }
+}
+
+/* NEXT TRIAL (modificado para ignorar training en el enqueue y en globalPresentedCsv) */
+async function nextTrial() {
+  const input = document.getElementById('txtResponse');
+  const status = document.getElementById('statusLine');
+
+  if (withinIndex >= 0 && withinIndex < currentBlockItems.length) {
+    const prev = currentBlockItems[withinIndex];
+    // no encolar respuestas de training
+    if (!prev.training) {
+      if (!blockQueuedCsv.has(prev.csvIndex) && !globalSentCsv.has(prev.csvIndex)) {
+        const response_text = input.value || '';
+        const rt_ms = Math.round(performance.now() - startTime);
+        const payload = {
+          token: SECRET_TOKEN,
+          participant_id: participant_id,
+          Bloque: getBlockNumber(blocks[blockIndex].type),
+          trial_index: prev.csvIndex,
+          trial_index_within_block: withinIndex,
+          stimulus: prev.path || '',
+          response_text: response_text,
+          rt_ms: rt_ms
+        };
+        blockBuffer.push(payload);
+        blockQueuedCsv.add(prev.csvIndex);
+        console.log('Encolada respuesta para blockBuffer csvIndex:', prev.csvIndex);
+      } else {
+        console.log('Prev already queued or sent, skipping queue for csvIndex', prev.csvIndex);
+      }
+    } else {
+      console.log('Prev was TRAINING — not queued for upload:', prev.csvIndex);
+    }
+  }
+
+  withinIndex++;
+  while (withinIndex < currentBlockItems.length && globalPresentedCsv.has(currentBlockItems[withinIndex].csvIndex)) {
+    console.warn('Skipping already presented csvIndex', currentBlockItems[withinIndex].csvIndex);
+    withinIndex++;
+  }
+
+  if (withinIndex >= currentBlockItems.length) {
+    const bufferToSend = blockBuffer.slice();
+    blockBuffer = [];
+    blockQueuedCsv.clear();
+
+    const sendPromise = (async () => { await sendBlockBuffer(bufferToSend, blockIndex+1); })();
+
+    const isLastBlock = (blockIndex + 1) >= blocks.length;
+    if (isLastBlock) {
+      showEnd();
+      return;
+    }
+
+    await showBreakThenContinue();
+
+    blockIndex++;
+    if (blockIndex >= blocks.length) {
+      try { await sendPromise; } catch(e){ console.warn('background send failed', e); }
+      showEnd();
+      return;
+    } else {
+      currentBlockItems = blocks[blockIndex].items || [];
+      withinIndex = -1;
+      blockBuffer = [];
+      blockQueuedCsv.clear();
+      showBlockScreen();
+      return;
+    }
+  }
+
+  // presentar siguiente trial
+  showTrialScreen();
+  const tnum = document.getElementById('trialNumber');
+  tnum.textContent = `Bloque ${blockIndex+1} — Trial ${withinIndex+1} / ${currentBlockItems.length}`;
+  const audioPlayer = document.getElementById('audioPlayer');
+  const nextStim = currentBlockItems[withinIndex];
+
+  // no marcar training como presented globalmente
+  if (!nextStim.training) {
+    globalPresentedCsv.add(nextStim.csvIndex);
+    console.log(`PRESENT -> Bloque:${blockIndex+1} Trial:${withinIndex+1} csvIndex:${nextStim.csvIndex} path:${nextStim.path}`);
+  } else {
+    console.log(`PRESENT (TRAINING) -> Bloque:${blockIndex+1} Trial:${withinIndex+1} csvIndex:${nextStim.csvIndex} path:${nextStim.path}`);
+  }
+
+  audioPlayer.src = encodePath(nextStim.path);
+  audioPlayer.load();
+  input.value = '';
+  input.focus();
+  startTime = performance.now();
+  status.textContent = '';
+
+  // Deshabilitar botón Siguiente hasta que termine el audio
+  const btnNext = document.getElementById('btnNext');
+  if (btnNext) btnNext.disabled = true;
+
+  // Habilitar cuando termine la reproducción
+  audioPlayer.onended = () => {
+    if (btnNext) btnNext.disabled = false;
+  };
+
+  try { 
+    await audioPlayer.play(); 
+  } catch (err) { 
+    console.warn('audio play failed', err);
+    // Si falla la reproducción, habilitar el botón igual
+    if (btnNext) btnNext.disabled = false;
+  }
+}
+
+/* Envío de buffer (igual que antes, incrementa pendingUploadsCount y lo maneja) */
+async function sendBlockBuffer(bufferParam, blockNumber) {
+  const status = document.getElementById('statusLine');
+  if (!bufferParam || !bufferParam.length) {
+    console.log('No hay filas para enviar para bloque', blockNumber);
+    return;
+  }
+  pendingUploadsCount += bufferParam.length;
+  updateUploadUI();
+
+  status.textContent = `Enviando ${bufferParam.length} respuestas del Bloque ${blockNumber}...`;
+  console.log(`Sending block ${blockNumber} buffer (${bufferParam.length} rows)`);
+
+  for (const payload of bufferParam) {
+    const csvIdx = payload.trial_index;
+    if (globalSentCsv.has(csvIdx)) {
+      console.log('Skipping already-sent csvIndex', csvIdx);
+      pendingUploadsCount = Math.max(0, pendingUploadsCount - 1);
+      updateUploadUI();
+      continue;
+    }
+    globalSentCsv.add(csvIdx);
+    try {
+      const res = await sendToSheet(payload);
+      console.log('Block send result for csvIndex', csvIdx, res);
+    } catch (e) {
+      console.warn('Error sending csvIndex', csvIdx, e);
+      const blob = new Blob([JSON.stringify(payload,null,2)], {type:'application/json'});
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `response-failed-${participant_id}-${csvIdx}.json`; document.body.appendChild(a); a.click(); a.remove();
+    } finally {
+      pendingUploadsCount = Math.max(0, pendingUploadsCount - 1);
+      updateUploadUI();
+    }
+  }
+
+  status.textContent = `Bloque ${blockNumber} enviado (${bufferParam.length} filas)`;
+  console.log(`Block ${blockNumber} buffer sent & cleared.`);
+}
+
+/* Break screen */
+function sleep(ms){ return new Promise(resolve => setTimeout(resolve, ms)); }
+async function showBreakThenContinue() {
+  document.getElementById('trialScreen').classList.add('hidden');
+  document.getElementById('blockScreen').classList.add('hidden');
+  document.getElementById('welcome').classList.add('hidden');
+  document.getElementById('breakScreen').classList.remove('hidden');
+  document.getElementById('endScreen').classList.add('hidden');
+
+  const countdownEl = document.getElementById('countdown');
+  const btnContinue = document.getElementById('btnContinue');
+  const breakStatus = document.getElementById('breakStatus');
+  btnContinue.disabled = true;
+  breakStatus.textContent = 'En descanso...';
+
+  let remaining = BREAK_SECONDS;
+  countdownEl.textContent = String(remaining);
+  while (remaining > 0) {
+    await sleep(1000);
+    remaining--;
+    countdownEl.textContent = String(remaining);
+  }
+  breakStatus.textContent = 'Listo — pulsa continuar cuando estés preparado';
+  btnContinue.disabled = false;
+
+  let autoTimeout = setTimeout(() => { if (!btnContinue.disabled) btnContinue.click(); }, 5000);
+
+  return new Promise(resolve => {
+    btnContinue.onclick = () => {
+      clearTimeout(autoTimeout);
+      btnContinue.disabled = true;
+      document.getElementById('breakScreen').classList.add('hidden');
+      resolve();
+    };
+  });
+}
+
+/* showTrialScreen & UI helpers */
+function showTrialScreen() {
+  document.getElementById('welcome').classList.add('hidden');
+  document.getElementById('demographicsScreen').classList.add('hidden');
+  document.getElementById('volumeScreen').classList.add('hidden');
+  document.getElementById('blockScreen').classList.add('hidden');
+  document.getElementById('trialScreen').classList.remove('hidden');
+  document.getElementById('breakScreen').classList.add('hidden');
+  document.getElementById('endScreen').classList.add('hidden');
+
+  const input = document.getElementById('txtResponse');
+  if (input) { input.value = ''; input.focus(); }
+  const btnNext = document.getElementById('btnNext');
+  if (btnNext) btnNext.disabled = true; // Inicialmente deshabilitado, se habilitará al terminar el audio
+  const status = document.getElementById('statusLine');
+  if (status) status.textContent = '';
+}
+
+function showWelcome(){ 
+  endScreenShown = false;
+  document.getElementById('welcome').classList.remove('hidden'); 
+  document.getElementById('demographicsScreen').classList.add('hidden'); 
+  document.getElementById('volumeScreen').classList.add('hidden'); 
+  document.getElementById('blockScreen').classList.add('hidden'); 
+  document.getElementById('trialScreen').classList.add('hidden'); 
+  document.getElementById('breakScreen').classList.add('hidden'); 
+  document.getElementById('endScreen').classList.add('hidden');
+}
+function showEnd(){ 
+  endScreenShown = true;
+  document.getElementById('welcome').classList.add('hidden'); 
+  document.getElementById('blockScreen').classList.add('hidden'); 
+  document.getElementById('trialScreen').classList.add('hidden'); 
+  document.getElementById('breakScreen').classList.add('hidden'); 
+  document.getElementById('endScreen').classList.remove('hidden'); 
+  updateUploadUI();
+  if (pendingUploadsCount === 0) document.getElementById('finalCloseNotice').classList.remove('hidden');
+}
+
+/* Inicial */
+showWelcome();
+</script>
+</body>
+</html>
