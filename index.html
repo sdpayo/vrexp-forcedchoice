@@ -369,7 +369,8 @@ function sendSessionMetadata(pid, seed, blocks) {
     blocks.forEach((b,bi) => b.items.forEach(it => {
       // excluir items de entrenamiento (training) del registro de session metadata
       if (it && it.training) return;
-      flat.push(`${bi+1}:${it.csvIndex}`);
+      // For pairs, include both stimuli
+      flat.push(`${bi+1}:${it.stimA.csvIndex}|${it.stimB.csvIndex}`);
     }));
     const payload = { token: SECRET_TOKEN, participant_id: pid, event_type: 'session', seed: seed, selected: flat.join(';'), timestamp: new Date().toISOString() };
     sendToSheet(payload).then(r => console.log('Session metadata saved', r)).catch(e => console.warn('Session metadata failed', e));
@@ -396,7 +397,6 @@ function generatePairs(stimuli, numPairs, isTraining = false) {
   
   const distances = Object.keys(byDistance).map(Number).sort();
   const pairs = [];
-  const used = new Set();
   
   // Generate pairs ensuring different distance numbers
   let attempts = 0;
