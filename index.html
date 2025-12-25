@@ -32,6 +32,13 @@
     .form-section h3 { color:#4a9eff; font-size:16px; margin:0 0 16px 0; text-align:center; border-bottom:1px solid #3a3a3a; padding-bottom:8px; }
     .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
     @media (max-width: 768px) { .form-grid { grid-template-columns:1fr; } }
+    .choice-button { font-size:48px; font-weight:700; padding:40px 80px; margin:12px; border:3px solid #4a9eff; background:#1f1f1f; color:#4a9eff; border-radius:12px; cursor:pointer; transition:all 0.3s; }
+    .choice-button:hover:not(:disabled) { background:#2a3f5f; transform:scale(1.05); }
+    .choice-button:disabled { opacity:0.5; cursor:not-allowed; }
+    .choice-button.playing { animation:pulse 0.8s infinite; border-color:#00ff88; color:#00ff88; }
+    @keyframes pulse { 0%, 100% { box-shadow:0 0 0 0 rgba(0,255,136,0.7); } 50% { box-shadow:0 0 20px 10px rgba(0,255,136,0); } }
+    .indicator { font-size:18px; font-weight:600; color:#aaa; margin:12px 0; }
+    .indicator.active { color:#00ff88; }
   </style>
 </head>
 <body>
@@ -44,12 +51,12 @@
       Es realizado por investigadores de la <b>Universidad Nacional de Quilmes (UNQ)</b> y la <b>Universidad Católica de Salta (UCASAL).</b></p>
 
       <h2>¿En qué consiste?</h2>
-      <p>Vas a escuchar <b>48 sonidos</b> divididos en <b>3 bloques</b> de <b>16 estímulos</b>.<br>
+      <p>Vas a escuchar <b>pares de sonidos</b> divididos en <b>3 bloques</b> de <b>32 ensayos</b>.<br>
       Entre cada bloque habrá un descanso de <b>30 segundos</b>.<br>
-      Duración total aproximada: <b>8 minutos</b>.</p>
+      Duración total aproximada: <b>12 minutos</b>.</p>
 
       <h2>¿Qué tenés que hacer?</h2>
-      <p>Luego de escuchar cada sonido, deberás <b>indicar la distancia</b> en metros (ej. 2.5).<br>
+      <p>En cada ensayo escucharás dos sonidos (A y B). Deberás <b>elegir cuál de los dos sonidos está MÁS LEJOS</b>.<br>
 
         <h2>Requisitos</h2>
       <ul style="text-align:left; display:inline-block; margin-top: -8px;">
@@ -200,12 +207,12 @@
 
     <div id="trialScreen" class="screen hidden">
       <p id="trialNumber" style="font-weight:600"></p>
-      <audio id="audioPlayer" preload="auto"></audio>
+      <p id="playbackIndicator" class="indicator">Reproduciendo...</p>
+      <audio id="audioPlayerA" preload="auto"></audio>
+      <audio id="audioPlayerB" preload="auto"></audio>
       <div style="margin-top:12px;">
-        <input id="txtResponse" type="number" placeholder="Escribe tu respuesta aquí (metros, ej. 2.5)" autocomplete="off" />
-      </div>
-      <div style="margin-top:12px;">
-        <button id="btnNext">Siguiente</button>
+        <button id="btnChoiceA" class="choice-button" disabled>A</button>
+        <button id="btnChoiceB" class="choice-button" disabled>B</button>
       </div>
       <p id="statusLine" class="small"></p>
     </div>
@@ -229,7 +236,7 @@
 
 <script>
 /* CONFIG */
-const ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbz0I-ggQojQf2_vMNrVzPjYdf5CMV-4nVHXN79CpN4AtgCElkFsx27YwUA-yATLU70i/exec";
+const ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbwBC_AQh-EfGO8MwsER4vho7fUiw5OTCFXTMM2AkLWpCLrii7glvEOAyKuG5M0LHchT7A/exec";
 const SECRET_TOKEN = "PsychoTry_2";
 const VALIDATE_FILES = false;
 const BREAK_SECONDS = 30;
@@ -369,7 +376,74 @@ function sendSessionMetadata(pid, seed, blocks) {
   } catch(e) { console.warn(e); }
 }
 
-/* PREPARAR BLOQUES (modificado para insertar 4 trials de entrenamiento por bloque) */
+/* EXTRACT DISTANCE NUMBER FROM FILENAME */
+function extractDistance(filepath) {
+  // Extract distance number from pattern: _conv_N_
+  const match = filepath.match(/_conv_(\d)_/);
+  return match ? parseInt(match[1], 10) : null;
+}
+
+/* GENERATE STIMULUS PAIRS */
+function generatePairs(stimuli, numPairs, isTraining = false) {
+  // Group stimuli by distance number
+  const byDistance = {};
+  for (const stim of stimuli) {
+    const dist = extractDistance(stim.path);
+    if (dist === null) continue;
+    if (!byDistance[dist]) byDistance[dist] = [];
+    byDistance[dist].push(stim);
+  }
+  
+  const distances = Object.keys(byDistance).map(Number).sort();
+  const pairs = [];
+  const used = new Set();
+  
+  // Generate pairs ensuring different distance numbers
+  let attempts = 0;
+  const maxAttempts = numPairs * 100;
+  
+  while (pairs.length < numPairs && attempts < maxAttempts) {
+    attempts++;
+    
+    // Pick two different distances
+    const dist1 = distances[Math.floor(Math.random() * distances.length)];
+    let dist2 = distances[Math.floor(Math.random() * distances.length)];
+    
+    // Ensure different distances
+    if (dist1 === dist2) continue;
+    
+    // Pick random stimuli from each distance
+    const stims1 = byDistance[dist1];
+    const stims2 = byDistance[dist2];
+    
+    if (!stims1 || !stims2 || stims1.length === 0 || stims2.length === 0) continue;
+    
+    const stimA = stims1[Math.floor(Math.random() * stims1.length)];
+    const stimB = stims2[Math.floor(Math.random() * stims2.length)];
+    
+    // Create pair signature to avoid excessive repeats
+    const pairSig = [stimA.csvIndex, stimB.csvIndex].sort().join('|');
+    
+    // Allow up to 3 repeats of same combination
+    const existingCount = pairs.filter(p => {
+      const sig = [p.stimA.csvIndex, p.stimB.csvIndex].sort().join('|');
+      return sig === pairSig;
+    }).length;
+    
+    if (existingCount >= 3) continue;
+    
+    pairs.push({
+      stimA: stimA,
+      stimB: stimB,
+      id: pairs.length,
+      training: isTraining
+    });
+  }
+  
+  return shuffleCrypto(pairs);
+}
+
+/* PREPARAR BLOQUES (modificado para generar pares) */
 async function loadConditionsAndPrepareBlocks() {
   blocks = [];
   blockBuffer = [];
@@ -409,67 +483,29 @@ async function loadConditionsAndPrepareBlocks() {
     // Orden de los bloques: contrabalanceado según participant_id
     const blockOrder = getBlockOrder(participant_id);
     const prepared = [];
-    const globalUsedCsv = new Set(Array.from(globalSentCsv));
 
     for (const type of blockOrder) {
       if (!groups[type]) continue;
-      const distances = Object.keys(groups[type]).sort();
-      const allCandidates = [].concat(...distances.map(d => groups[type][d].slice()));
-      const target = Math.min(12, allCandidates.length);
-      const picksByDistance = {};
-
-      for (const d of distances) {
-        const candidates = shuffleCrypto(groups[type][d].slice());
-        const chosen = [];
-        for (const c of candidates) {
-          if (chosen.length >= 3) break;
-          if (globalUsedCsv.has(c.csvIndex)) continue;
-          if (!(await fileExists(c.path))) continue;
-          chosen.push(c);
-          globalUsedCsv.add(c.csvIndex);
-        }
-        picksByDistance[d] = chosen;
-      }
-
-      let picksFlat = [].concat(...Object.values(picksByDistance));
-      if (picksFlat.length < target) {
-        const pool = shuffleCrypto(allCandidates.slice());
-        for (const p of pool) {
-          if (picksFlat.length >= target) break;
-          if (globalUsedCsv.has(p.csvIndex)) continue;
-          if (!(await fileExists(p.path))) continue;
-          picksFlat.push(p);
-          globalUsedCsv.add(p.csvIndex);
-        }
-      }
-
-      const blockItems = shuffleCrypto(picksFlat);
-
-      // --- generar 4 trials de entrenamiento (no se guardan en sheets) y prependerlos ---
-      const trainingItems = [];
-      for (let ti = 1; ti <= 4; ti++) {
-        // Ruta siguiendo el patrón observado en conditions.csv
-        const trainPath = `stimuli/Vidrios_Conv_${ti}_conv_rir_${type}${ti}.wav_rov+00dB.wav`;
-        trainingItems.push({ path: trainPath, csvIndex: `train_${type}_${ti}`, training: true });
-      }
-      // Randomizar el orden de los trials de entrenamiento
-      const shuffledTraining = shuffleCrypto(trainingItems);
-      const itemsWithTraining = shuffledTraining.concat(blockItems);
-
-      prepared.push({ type, items: itemsWithTraining, debug: picksByDistance });
-      console.log(`Block ${type}: target=${target}, selected=${blockItems.length} (plus ${trainingItems.length} training)`);
+      
+      // Get all stimuli for this block type
+      const allStimuli = [].concat(...Object.values(groups[type]));
+      
+      // Generate 24 experimental pairs + 8 training pairs = 32 total
+      const experimentalPairs = generatePairs(allStimuli, 24, false);
+      const trainingPairs = generatePairs(allStimuli, 8, true);
+      
+      // Combine: training first, then experimental
+      const allPairs = trainingPairs.concat(experimentalPairs);
+      
+      prepared.push({ type, items: allPairs });
+      console.log(`Block ${type}: ${trainingPairs.length} training pairs + ${experimentalPairs.length} experimental pairs = ${allPairs.length} total`);
     }
 
     blocks = prepared;
 
-    const seen = new Set(); const dups = [];
-    blocks.forEach(b => b.items.forEach(it => { if (seen.has(it.csvIndex)) dups.push(it.csvIndex); else seen.add(it.csvIndex); }));
-    if (dups.length) console.error('DUPLICATES DETECTED in prepared blocks:', dups);
-    else console.log('Prepared blocks OK. Total selected:', seen.size);
-
     blocks.forEach((b,bi) => {
-      console.group(`Block ${bi+1} (${b.type}) — ${b.items.length} items (incl. training)`);
-      b.items.forEach((it,i) => console.log(`  [${i+1}] csvIndex:${it.csvIndex} path:${it.path} ${it.training ? '(TRAINING)' : ''}`));
+      console.group(`Block ${bi+1} (${b.type}) — ${b.items.length} pairs`);
+      b.items.forEach((it,i) => console.log(`  [${i+1}] ${it.training ? '(TRAINING)' : ''} A:${it.stimA.path} B:${it.stimB.path}`));
       console.groupEnd();
     });
 
@@ -731,30 +767,25 @@ document.getElementById('btnStartBlock').addEventListener('click', async () => {
 
 /* Debounce next */
 let nextLock = false;
-document.getElementById('btnNext').addEventListener('click', () => {
-  if (nextLock) { console.warn('Next click ignored (debounce)'); return; }
-  
-  // Validar que el campo de respuesta tenga un valor numérico
-  const input = document.getElementById('txtResponse');
-  const value = input.value.trim();
-  
-  if (!value) {
-    alert('Por favor ingresá un valor numérico para la distancia estimada.');
-    input.focus();
-    return;
-  }
-  
-  // Validar que sea numérico (puede incluir punto decimal)
-  if (!/^\d+(\.\d+)?$/.test(value)) {
-    alert('Por favor ingresá un valor numérico válido (ej. 2.5).');
-    input.focus();
-    return;
-  }
+let currentTrial = null;
+
+/* Choice button handlers */
+document.getElementById('btnChoiceA').addEventListener('click', () => handleChoice('A'));
+document.getElementById('btnChoiceB').addEventListener('click', () => handleChoice('B'));
+
+function handleChoice(choice) {
+  if (nextLock) { console.warn('Choice ignored (debounce)'); return; }
+  if (!currentTrial) { console.warn('No current trial'); return; }
   
   nextLock = true;
   setTimeout(() => { nextLock = false; }, 350);
+  
+  // Store choice and proceed
+  currentTrial.userChoice = choice;
+  currentTrial.rt_ms = Math.round(performance.now() - startTime);
+  
   nextTrial();
-});
+}
 
 /* Helpers upload UI */
 function updateUploadUI() {
@@ -775,45 +806,51 @@ function updateUploadUI() {
   }
 }
 
-/* NEXT TRIAL (modificado para ignorar training en el enqueue y en globalPresentedCsv) */
+/* NEXT TRIAL (modificado para manejar pares de estímulos) */
 async function nextTrial() {
-  const input = document.getElementById('txtResponse');
   const status = document.getElementById('statusLine');
 
-  if (withinIndex >= 0 && withinIndex < currentBlockItems.length) {
+  // Process previous trial response
+  if (withinIndex >= 0 && withinIndex < currentBlockItems.length && currentTrial && currentTrial.userChoice) {
     const prev = currentBlockItems[withinIndex];
+    
     // no encolar respuestas de training
     if (!prev.training) {
-      if (!blockQueuedCsv.has(prev.csvIndex) && !globalSentCsv.has(prev.csvIndex)) {
-        const response_text = input.value || '';
-        const rt_ms = Math.round(performance.now() - startTime);
+      const pairId = `${prev.stimA.csvIndex}|${prev.stimB.csvIndex}`;
+      if (!blockQueuedCsv.has(pairId) && !globalSentCsv.has(pairId)) {
+        const distA = extractDistance(prev.stimA.path);
+        const distB = extractDistance(prev.stimB.path);
+        const correct = (currentTrial.userChoice === 'A' && distA > distB) || 
+                       (currentTrial.userChoice === 'B' && distB > distA);
+        
         const payload = {
           token: SECRET_TOKEN,
           participant_id: participant_id,
-          Bloque: getBlockNumber(blocks[blockIndex].type),
-          trial_index: prev.csvIndex,
-          trial_index_within_block: withinIndex,
-          stimulus: prev.path || '',
-          response_text: response_text,
-          rt_ms: rt_ms
+          event_type: 'response',
+          trial_index: prev.id,
+          block: getBlockNumber(blocks[blockIndex].type),
+          stim_A: prev.stimA.path,
+          stim_B: prev.stimB.path,
+          choice: currentTrial.userChoice,
+          correct: correct ? 'True' : 'False',
+          rt_ms: currentTrial.rt_ms,
+          condition: blocks[blockIndex].type,
+          timestamp: new Date().toISOString(),
+          extra: JSON.stringify({ distA: distA, distB: distB })
         };
         blockBuffer.push(payload);
-        blockQueuedCsv.add(prev.csvIndex);
-        console.log('Encolada respuesta para blockBuffer csvIndex:', prev.csvIndex);
+        blockQueuedCsv.add(pairId);
+        console.log('Encolada respuesta para pair:', pairId, 'correct:', correct);
       } else {
-        console.log('Prev already queued or sent, skipping queue for csvIndex', prev.csvIndex);
+        console.log('Prev already queued or sent, skipping:', pairId);
       }
     } else {
-      console.log('Prev was TRAINING — not queued for upload:', prev.csvIndex);
+      console.log('Prev was TRAINING — not queued for upload');
     }
   }
 
   withinIndex++;
-  while (withinIndex < currentBlockItems.length && globalPresentedCsv.has(currentBlockItems[withinIndex].csvIndex)) {
-    console.warn('Skipping already presented csvIndex', currentBlockItems[withinIndex].csvIndex);
-    withinIndex++;
-  }
-
+  
   if (withinIndex >= currentBlockItems.length) {
     const bufferToSend = blockBuffer.slice();
     blockBuffer = [];
@@ -844,44 +881,89 @@ async function nextTrial() {
     }
   }
 
-  // presentar siguiente trial
+  // Present next trial (pair)
+  await presentPair();
+}
+
+/* PRESENT PAIR - play A, pause, play B, then enable buttons */
+async function presentPair() {
   showTrialScreen();
+  
   const tnum = document.getElementById('trialNumber');
+  const indicator = document.getElementById('playbackIndicator');
+  const btnA = document.getElementById('btnChoiceA');
+  const btnB = document.getElementById('btnChoiceB');
+  const audioA = document.getElementById('audioPlayerA');
+  const audioB = document.getElementById('audioPlayerB');
+  const status = document.getElementById('statusLine');
+  
+  const pair = currentBlockItems[withinIndex];
+  currentTrial = { pair: pair, userChoice: null, rt_ms: 0 };
+  
   tnum.textContent = `Bloque ${blockIndex+1} — Trial ${withinIndex+1} / ${currentBlockItems.length}`;
-  const audioPlayer = document.getElementById('audioPlayer');
-  const nextStim = currentBlockItems[withinIndex];
-
-  // no marcar training como presented globalmente
-  if (!nextStim.training) {
-    globalPresentedCsv.add(nextStim.csvIndex);
-    console.log(`PRESENT -> Bloque:${blockIndex+1} Trial:${withinIndex+1} csvIndex:${nextStim.csvIndex} path:${nextStim.path}`);
-  } else {
-    console.log(`PRESENT (TRAINING) -> Bloque:${blockIndex+1} Trial:${withinIndex+1} csvIndex:${nextStim.csvIndex} path:${nextStim.path}`);
-  }
-
-  audioPlayer.src = encodePath(nextStim.path);
-  audioPlayer.load();
-  input.value = '';
-  input.focus();
-  startTime = performance.now();
   status.textContent = '';
-
-  // Deshabilitar botón Siguiente hasta que termine el audio
-  const btnNext = document.getElementById('btnNext');
-  if (btnNext) btnNext.disabled = true;
-
-  // Habilitar cuando termine la reproducción
-  audioPlayer.onended = () => {
-    if (btnNext) btnNext.disabled = false;
-  };
-
-  try { 
-    await audioPlayer.play(); 
-  } catch (err) { 
-    console.warn('audio play failed', err);
-    // Si falla la reproducción, habilitar el botón igual
-    if (btnNext) btnNext.disabled = false;
+  
+  // Disable buttons during playback
+  btnA.disabled = true;
+  btnB.disabled = true;
+  btnA.classList.remove('playing');
+  btnB.classList.remove('playing');
+  
+  // Load both audio files
+  audioA.src = encodePath(pair.stimA.path);
+  audioB.src = encodePath(pair.stimB.path);
+  audioA.load();
+  audioB.load();
+  
+  console.log(`PRESENT PAIR -> Bloque:${blockIndex+1} Trial:${withinIndex+1} ${pair.training ? '(TRAINING)' : ''}`);
+  console.log(`  A: ${pair.stimA.path}`);
+  console.log(`  B: ${pair.stimB.path}`);
+  
+  // Play stimulus A
+  indicator.textContent = 'Reproduciendo estímulo A...';
+  indicator.classList.add('active');
+  btnA.classList.add('playing');
+  
+  try {
+    await audioA.play();
+    await new Promise(resolve => {
+      audioA.onended = resolve;
+    });
+  } catch (err) {
+    console.warn('audio A play failed', err);
   }
+  
+  btnA.classList.remove('playing');
+  
+  // Pause 500ms
+  indicator.textContent = 'Pausa...';
+  indicator.classList.remove('active');
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  // Play stimulus B
+  indicator.textContent = 'Reproduciendo estímulo B...';
+  indicator.classList.add('active');
+  btnB.classList.add('playing');
+  
+  try {
+    await audioB.play();
+    await new Promise(resolve => {
+      audioB.onended = resolve;
+    });
+  } catch (err) {
+    console.warn('audio B play failed', err);
+  }
+  
+  btnB.classList.remove('playing');
+  indicator.textContent = '¿Cuál sonido está MÁS LEJOS?';
+  indicator.classList.remove('active');
+  
+  // Enable buttons for response
+  btnA.disabled = false;
+  btnB.disabled = false;
+  
+  // Start RT timer
+  startTime = performance.now();
 }
 
 /* Envío de buffer (igual que antes, incrementa pendingUploadsCount y lo maneja) */
@@ -970,10 +1052,10 @@ function showTrialScreen() {
   document.getElementById('breakScreen').classList.add('hidden');
   document.getElementById('endScreen').classList.add('hidden');
 
-  const input = document.getElementById('txtResponse');
-  if (input) { input.value = ''; input.focus(); }
-  const btnNext = document.getElementById('btnNext');
-  if (btnNext) btnNext.disabled = true; // Inicialmente deshabilitado, se habilitará al terminar el audio
+  const btnA = document.getElementById('btnChoiceA');
+  const btnB = document.getElementById('btnChoiceB');
+  if (btnA) btnA.disabled = true;
+  if (btnB) btnB.disabled = true;
   const status = document.getElementById('statusLine');
   if (status) status.textContent = '';
 }
