@@ -495,10 +495,13 @@ async function loadConditionsAndPrepareBlocks() {
       // Get all stimuli for this block type
       const allStimuli = [].concat(...Object.values(groups[type]));
       
-      // Generate 12 experimental pairs + 4 training pairs = 16 total
-      // Pass block type and block index for unique ID generation
+      // Generate 12 experimental pairs (using all stimuli)
       const experimentalPairs = generatePairs(allStimuli, 12, false, type, blockIdx);
-      const trainingPairs = generatePairs(allStimuli, 4, true, type, blockIdx);
+      
+      // Generate 4 training pairs (only with 0dB stimuli)
+      // Filter only 0dB stimuli from the current block
+      const stims0dB = allStimuli.filter(s => s.path.includes('_rov+00dB.wav'));
+      const trainingPairs = generatePairs(stims0dB, 4, true, type, blockIdx);
       
       // Combine: training first, then experimental
       const allPairs = trainingPairs.concat(experimentalPairs);
