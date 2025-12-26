@@ -51,9 +51,9 @@
       Es realizado por investigadores de la <b>Universidad Nacional de Quilmes (UNQ)</b> y la <b>Universidad Católica de Salta (UCASAL).</b></p>
 
       <h2>¿En qué consiste?</h2>
-      <p>Vas a escuchar <b>pares de sonidos</b> divididos en <b>3 bloques</b> de <b>32 ensayos</b>.<br>
+      <p>Vas a escuchar <b>pares de sonidos</b> divididos en <b>3 bloques</b> de <b>16 ensayos cada uno</b> (12 experimentales + 4 de entrenamiento).<br>
       Entre cada bloque habrá un descanso de <b>30 segundos</b>.<br>
-      Duración total aproximada: <b>12 minutos</b>.</p>
+      Duración total aproximada: <b>8 minutos</b>.</p>
 
       <h2>¿Qué tenés que hacer?</h2>
       <p>En cada ensayo escucharás dos sonidos (A y B). Deberás <b>elegir cuál de los dos sonidos está MÁS LEJOS</b>.<br>
@@ -490,9 +490,9 @@ async function loadConditionsAndPrepareBlocks() {
       // Get all stimuli for this block type
       const allStimuli = [].concat(...Object.values(groups[type]));
       
-      // Generate 24 experimental pairs + 8 training pairs = 32 total
-      const experimentalPairs = generatePairs(allStimuli, 24, false);
-      const trainingPairs = generatePairs(allStimuli, 8, true);
+      // Generate 12 experimental pairs + 4 training pairs = 16 total
+      const experimentalPairs = generatePairs(allStimuli, 12, false);
+      const trainingPairs = generatePairs(allStimuli, 4, true);
       
       // Combine: training first, then experimental
       const allPairs = trainingPairs.concat(experimentalPairs);
