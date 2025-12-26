@@ -273,9 +273,9 @@ let startTime = 0;
 
 /* Buffers y sets */
 let blockBuffer = [];
-const blockQueuedCsv = new Set();
+const blockQueuedIds = new Set();
 const globalPresentedCsv = new Set();
-const globalSentCsv = new Set();
+const globalSentIds = new Set();
 
 /* Upload tracking */
 let pendingUploadsCount = 0;
@@ -385,7 +385,7 @@ function extractDistance(filepath) {
 }
 
 /* GENERATE STIMULUS PAIRS */
-function generatePairs(stimuli, numPairs, isTraining = false) {
+function generatePairs(stimuli, numPairs, isTraining = false, blockType = '', blockIndex = 0) {
   // Group stimuli by distance number
   const byDistance = {};
   for (const stim of stimuli) {
@@ -432,10 +432,14 @@ function generatePairs(stimuli, numPairs, isTraining = false) {
     
     if (existingCount >= 3) continue;
     
+    // Generate unique ID including block type and block index
+    const prefix = isTraining ? 'train' : 'exp';
+    const uniqueId = `${prefix}_${blockType}_${blockIndex}_${pairs.length}`;
+    
     pairs.push({
       stimA: stimA,
       stimB: stimB,
-      id: pairs.length,
+      id: uniqueId,
       training: isTraining
     });
   }
@@ -447,7 +451,7 @@ function generatePairs(stimuli, numPairs, isTraining = false) {
 async function loadConditionsAndPrepareBlocks() {
   blocks = [];
   blockBuffer = [];
-  blockQueuedCsv.clear();
+  blockQueuedIds.clear();
   globalPresentedCsv.clear();
 
   try {
@@ -484,15 +488,17 @@ async function loadConditionsAndPrepareBlocks() {
     const blockOrder = getBlockOrder(participant_id);
     const prepared = [];
 
-    for (const type of blockOrder) {
+    for (let blockIdx = 0; blockIdx < blockOrder.length; blockIdx++) {
+      const type = blockOrder[blockIdx];
       if (!groups[type]) continue;
       
       // Get all stimuli for this block type
       const allStimuli = [].concat(...Object.values(groups[type]));
       
       // Generate 12 experimental pairs + 4 training pairs = 16 total
-      const experimentalPairs = generatePairs(allStimuli, 12, false);
-      const trainingPairs = generatePairs(allStimuli, 4, true);
+      // Pass block type and block index for unique ID generation
+      const experimentalPairs = generatePairs(allStimuli, 12, false, type, blockIdx);
+      const trainingPairs = generatePairs(allStimuli, 4, true, type, blockIdx);
       
       // Combine: training first, then experimental
       const allPairs = trainingPairs.concat(experimentalPairs);
@@ -760,7 +766,7 @@ document.getElementById('btnStartBlock').addEventListener('click', async () => {
   if (conditionsPromise) await conditionsPromise;
   currentBlockItems = blocks[blockIndex] ? blocks[blockIndex].items || [] : [];
   withinIndex = -1;
-  blockBuffer = []; blockQueuedCsv.clear();
+  blockBuffer = []; blockQueuedIds.clear();
   console.log(`--- STARTING BLOCK ${blockIndex+1} items:${currentBlockItems.length} ---`);
   nextTrial();
 });
@@ -816,8 +822,8 @@ async function nextTrial() {
     
     // no encolar respuestas de training
     if (!prev.training) {
-      const pairId = `${prev.stimA.csvIndex}|${prev.stimB.csvIndex}`;
-      if (!blockQueuedCsv.has(pairId) && !globalSentCsv.has(pairId)) {
+      const uniqueId = prev.id;
+      if (!blockQueuedIds.has(uniqueId) && !globalSentIds.has(uniqueId)) {
         const distA = extractDistance(prev.stimA.path);
         const distB = extractDistance(prev.stimB.path);
         const correct = (currentTrial.userChoice === 'A' && distA > distB) || 
@@ -839,10 +845,10 @@ async function nextTrial() {
           extra: JSON.stringify({ distA: distA, distB: distB })
         };
         blockBuffer.push(payload);
-        blockQueuedCsv.add(pairId);
-        console.log('Encolada respuesta para pair:', pairId, 'correct:', correct);
+        blockQueuedIds.add(uniqueId);
+        console.log('Encolada respuesta para trial:', uniqueId, 'pair:', `${prev.stimA.csvIndex}|${prev.stimB.csvIndex}`, 'correct:', correct);
       } else {
-        console.log('Prev already queued or sent, skipping:', pairId);
+        console.log('Prev already queued or sent, skipping:', uniqueId);
       }
     } else {
       console.log('Prev was TRAINING — not queued for upload');
@@ -854,7 +860,7 @@ async function nextTrial() {
   if (withinIndex >= currentBlockItems.length) {
     const bufferToSend = blockBuffer.slice();
     blockBuffer = [];
-    blockQueuedCsv.clear();
+    blockQueuedIds.clear();
 
     const sendPromise = (async () => { await sendBlockBuffer(bufferToSend, blockIndex+1); })();
 
@@ -875,7 +881,7 @@ async function nextTrial() {
       currentBlockItems = blocks[blockIndex].items || [];
       withinIndex = -1;
       blockBuffer = [];
-      blockQueuedCsv.clear();
+      blockQueuedIds.clear();
       showBlockScreen();
       return;
     }
@@ -980,21 +986,21 @@ async function sendBlockBuffer(bufferParam, blockNumber) {
   console.log(`Sending block ${blockNumber} buffer (${bufferParam.length} rows)`);
 
   for (const payload of bufferParam) {
-    const csvIdx = payload.trial_index;
-    if (globalSentCsv.has(csvIdx)) {
-      console.log('Skipping already-sent csvIndex', csvIdx);
+    const id = payload.trial_index;
+    if (globalSentIds.has(id)) {
+      console.log('Skipping already-sent trial_index', id);
       pendingUploadsCount = Math.max(0, pendingUploadsCount - 1);
       updateUploadUI();
       continue;
     }
-    globalSentCsv.add(csvIdx);
+    globalSentIds.add(id);
     try {
       const res = await sendToSheet(payload);
-      console.log('Block send result for csvIndex', csvIdx, res);
+      console.log('Block send result for trial_index', id, res);
     } catch (e) {
-      console.warn('Error sending csvIndex', csvIdx, e);
+      console.warn('Error sending trial_index', id, e);
       const blob = new Blob([JSON.stringify(payload,null,2)], {type:'application/json'});
-      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `response-failed-${participant_id}-${csvIdx}.json`; document.body.appendChild(a); a.click(); a.remove();
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `response-failed-${participant_id}-${id}.json`; document.body.appendChild(a); a.click(); a.remove();
     } finally {
       pendingUploadsCount = Math.max(0, pendingUploadsCount - 1);
       updateUploadUI();
