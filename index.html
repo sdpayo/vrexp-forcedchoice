@@ -467,10 +467,11 @@ async function loadConditionsAndPrepareBlocks() {
     const groups = {};
     for (const obj of pathObjs) {
       const p = obj.path;
-      const m = p.match(/_(flat|low|high)_dist(\d+)/i);
+      const m = p.match(/(flat|low|high)_dist(\d+)/i);
       if (m) {
         const type = m[1].toLowerCase();
-        const dist = m[1].toLowerCase() + m[2];
+        //const dist = m[1].toLowerCase() + m[2];
+        const dist = `${m[1].toLowerCase()}_dist${m[2]}`;
         groups[type] = groups[type] || {};
         groups[type][dist] = groups[type][dist] || [];
         groups[type][dist].push(obj);
