@@ -379,8 +379,8 @@ function sendSessionMetadata(pid, seed, blocks) {
 
 /* EXTRACT DISTANCE NUMBER FROM FILENAME */
 function extractDistance(filepath) {
-  // Extract distance number from pattern: _conv_N_
-  const match = filepath.match(/_conv_(\d)_/);
+  // Extract distance number from pattern: _distN_
+  const match = filepath.match(/_dist(\d)_/);
   return match ? parseInt(match[1], 10) : null;
 }
 
@@ -467,7 +467,7 @@ async function loadConditionsAndPrepareBlocks() {
     const groups = {};
     for (const obj of pathObjs) {
       const p = obj.path;
-      const m = p.match(/_conv_rir_(flat|low|high)(\d+)/i);
+      const m = p.match(/_(flat|low|high)_dist(\d+)/i);
       if (m) {
         const type = m[1].toLowerCase();
         const dist = m[1].toLowerCase() + m[2];
@@ -476,7 +476,7 @@ async function loadConditionsAndPrepareBlocks() {
         groups[type][dist].push(obj);
       } else {
         const type = /flat/i.test(p) ? 'flat' : (/low/i.test(p) ? 'low' : (/high/i.test(p) ? 'high' : 'other'));
-        const dm = p.match(/(flat|low|high)(\d+)/i);
+        const dm = p.match(/(flat|low|high)_dist(\d+)/i);
         const dist = dm ? dm[1].toLowerCase()+dm[2] : (type + '_0');
         groups[type] = groups[type] || {};
         groups[type][dist] = groups[type][dist] || [];
@@ -500,7 +500,7 @@ async function loadConditionsAndPrepareBlocks() {
       
       // Generate 4 training pairs (only with 0dB stimuli)
       // Filter only 0dB stimuli from the current block
-      const stims0dB = allStimuli.filter(s => s.path.includes('_rov+00dB.wav'));
+      const stims0dB = allStimuli.filter(s => s.path.includes('roved_+00dB.wav'));
       const trainingPairs = generatePairs(stims0dB, 4, true, type, blockIdx);
       
       // Combine: training first, then experimental
