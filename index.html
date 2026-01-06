@@ -32,13 +32,15 @@
     .form-section h3 { color:#4a9eff; font-size:16px; margin:0 0 16px 0; text-align:center; border-bottom:1px solid #3a3a3a; padding-bottom:8px; }
     .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
     @media (max-width: 768px) { .form-grid { grid-template-columns:1fr; } }
-    .choice-button { font-size:48px; font-weight:700; padding:40px 80px; margin:12px; border:3px solid #4a9eff; background:#1f1f1f; color:#4a9eff; border-radius:12px; cursor:pointer; transition:all 0.3s; }
+    .choice-button { font-size:48px; font-weight:700; padding:40px 80px; border:3px solid #4a9eff; background:#1f1f1f; color:#4a9eff; border-radius:12px; cursor:pointer; transition:all 0.3s; flex-shrink:0; }
     .choice-button:hover:not(:disabled) { background:#2a3f5f; transform:scale(1.05); }
     .choice-button:disabled { opacity:0.5; cursor:not-allowed; }
-    .choice-button.playing { animation:pulse 0.8s infinite; border-color:#00ff88; color:#00ff88; }
-    @keyframes pulse { 0%, 100% { box-shadow:0 0 0 0 rgba(0,255,136,0.7); } 50% { box-shadow:0 0 20px 10px rgba(0,255,136,0); } }
+    @media (max-width: 768px) { .choice-button { font-size:36px; padding:30px 60px; } }
     .indicator { font-size:18px; font-weight:600; color:#aaa; margin:12px 0; }
     .indicator.active { color:#00ff88; }
+    .progress-bar { width:100%; background:#333; border-radius:8px; height:20px; overflow:hidden; margin:16px 0; }
+    .progress-bar-fill { background:linear-gradient(90deg, #4a9eff, #00ff88); height:100%; transition:width 0.3s ease; display:flex; align-items:center; justify-content:center; font-size:11px; color:#fff; font-weight:600; }
+    .progress-text { text-align:center; font-size:13px; color:#aaa; margin-top:6px; }
   </style>
 </head>
 <body>
@@ -62,7 +64,7 @@
       <ul style="text-align:left; display:inline-block; margin-top: -8px;">
         <li><b>Usar auriculares.</b></li>
         <li>Ambiente lo más silencioso posible.</li>
-        <li>Silenciar notificaciones.</li>
+        <li>Silenciar notificaciones en tu teléfono (si aplica).</li>
       </ul>
 
       <div class="warning-box">
@@ -74,11 +76,10 @@
           </svg>
           Importante
         </h3>
-        <p style="margin:0 0 8px 0; color:#ffb3b3;">El volumen de los sonidos varía al azar entre ensayos.</p>
-        <ul>
-          <li>No uses el volumen para estimar la distancia</li>
-          <li>No ajustes el volumen durante el experimento</li>
-          <li>Basate en otras características del sonido</li>
+        <ul style="margin:8px 0 0 0;">
+          <li><b>No uses el volumen para estimar la distancia.</b> El volumen varía al azar entre ensayos.</li>
+          <li><b>Cada sonido se reproduce una sola vez.</b> Escucha con atención.</li>
+          <li>Realiza el experimento en un lugar silencioso y sin distracciones.</li>
         </ul>
       </div>
 
@@ -206,14 +207,30 @@
     </div>
 
     <div id="trialScreen" class="screen hidden">
-      <p id="trialNumber" style="font-weight:600"></p>
-      <p id="playbackIndicator" class="indicator">Reproduciendo...</p>
+      <div class="progress-bar">
+        <div id="trialProgressFill" class="progress-bar-fill" style="width:0%;"></div>
+      </div>
+      <div class="progress-text">
+        <span id="trialProgressText">Ensayo 1 de 16</span>
+      </div>
+      
       <audio id="audioPlayerA" preload="auto"></audio>
       <audio id="audioPlayerB" preload="auto"></audio>
-      <div style="margin-top:12px;">
+      
+      <div style="margin-top:16px;">
+        <p id="playbackIndicator" class="indicator" style="font-size:16px; font-weight:600; min-height:24px;"></p>
+      </div>
+      
+      <div style="margin-top:16px;">
+        <p style="font-size:18px; font-weight:600; margin:12px 0;">¿Cuál sonido está MÁS LEJOS?</p>
+      </div>
+      
+      <div style="margin-top:16px; display:flex; justify-content:center; gap:12px; flex-wrap:nowrap;">
         <button id="btnChoiceA" class="choice-button" disabled>A</button>
         <button id="btnChoiceB" class="choice-button" disabled>B</button>
       </div>
+      
+      <p style="font-size:12px; color:#aaa; margin-top:20px;">Recuerde no utilizar el volumen para estimar la distancia.</p>
       <p id="statusLine" class="small"></p>
     </div>
 
@@ -899,7 +916,8 @@ async function nextTrial() {
 async function presentPair() {
   showTrialScreen();
   
-  const tnum = document.getElementById('trialNumber');
+  const progressFill = document.getElementById('trialProgressFill');
+  const progressText = document.getElementById('trialProgressText');
   const indicator = document.getElementById('playbackIndicator');
   const btnA = document.getElementById('btnChoiceA');
   const btnB = document.getElementById('btnChoiceB');
@@ -910,14 +928,15 @@ async function presentPair() {
   const pair = currentBlockItems[withinIndex];
   currentTrial = { pair: pair, userChoice: null, rt_ms: 0 };
   
-  tnum.textContent = `Bloque ${blockIndex+1} — Trial ${withinIndex+1} / ${currentBlockItems.length}`;
+  // Update progress bar
+  const progressPercentage = ((withinIndex + 1) / currentBlockItems.length) * 100;
+  progressFill.style.width = progressPercentage + '%';
+  progressText.textContent = `Ensayo ${withinIndex + 1} de ${currentBlockItems.length}`;
   status.textContent = '';
   
   // Disable buttons during playback
   btnA.disabled = true;
   btnB.disabled = true;
-  btnA.classList.remove('playing');
-  btnB.classList.remove('playing');
   
   // Load both audio files
   audioA.src = encodePath(pair.stimA.path);
@@ -930,9 +949,8 @@ async function presentPair() {
   console.log(`  B: ${pair.stimB.path}`);
   
   // Play stimulus A
-  indicator.textContent = 'Reproduciendo estímulo A...';
+  indicator.textContent = 'Reproduciendo Sonido A...';
   indicator.classList.add('active');
-  btnA.classList.add('playing');
   
   try {
     await audioA.play();
@@ -943,17 +961,14 @@ async function presentPair() {
     console.warn('audio A play failed', err);
   }
   
-  btnA.classList.remove('playing');
-  
   // Pause 500ms
   indicator.textContent = 'Pausa...';
   indicator.classList.remove('active');
   await new Promise(resolve => setTimeout(resolve, 500));
   
   // Play stimulus B
-  indicator.textContent = 'Reproduciendo estímulo B...';
+  indicator.textContent = 'Reproduciendo Sonido B...';
   indicator.classList.add('active');
-  btnB.classList.add('playing');
   
   try {
     await audioB.play();
@@ -964,8 +979,7 @@ async function presentPair() {
     console.warn('audio B play failed', err);
   }
   
-  btnB.classList.remove('playing');
-  indicator.textContent = '¿Cuál sonido está MÁS LEJOS?';
+  indicator.textContent = '';
   indicator.classList.remove('active');
   
   // Enable buttons for response
