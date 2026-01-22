@@ -556,13 +556,8 @@ async function loadConditionsAndPrepareBlocks() {
   }
 }
 
-/* FLUJO INICIAL: btnStart -> consultar servidor para ID -> asignar participant_id+seed -> lanzar loadConditionsAndPrepareBlocks en background -> mostrar encuesta demográfica */
+/* FLUJO INICIAL: btnStart -> mostrar encuesta demográfica (ID se asigna DESPUÉS de completar el formulario) */
 document.getElementById('btnStart').addEventListener('click', async () => {
-  participant_id = await getNextParticipantId();
-  const rnd = (window.crypto && crypto.getRandomValues) ? crypto.getRandomValues(new Uint32Array(2)) : [Math.floor(Math.random()*1e9),0];
-  seed = `${participant_id}-${performance.now()}-${rnd[0]}-${rnd[1]}`;
-  console.log('START session -> participant_id:', participant_id, ' seed:', seed);
-
   // iniciar carga de conditions en background (no await)
   conditionsPromise = loadConditionsAndPrepareBlocks();
 
@@ -650,6 +645,12 @@ document.getElementById('btnDemSubmit').addEventListener('click', async () => {
   // validación mínima (edad, dispositivo)
   if (!age || age <= 0) { alert('Por favor ingresá una edad válida.'); btn.disabled = false; return; }
   if (!device) { alert('Por favor seleccioná el dispositivo que estás usando.'); btn.disabled = false; return; }
+
+  // ASIGNAR ID DE PARTICIPANTE SOLO DESPUÉS DE VALIDAR EL FORMULARIO
+  participant_id = await getNextParticipantId();
+  const rnd = (window.crypto && crypto.getRandomValues) ? crypto.getRandomValues(new Uint32Array(2)) : [Math.floor(Math.random()*1e9),0];
+  seed = `${participant_id}-${performance.now()}-${rnd[0]}-${rnd[1]}`;
+  console.log('Demographics submitted -> participant_id:', participant_id, ' seed:', seed);
 
   // construir payload para hoja "datos_demograficos"
   const payload = {
