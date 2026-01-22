@@ -358,44 +358,26 @@ async function fileExists(path) {
   return false;
 }
 
-/* PARTICIPANT ID MANAGEMENT */
-let availableParticipantIds = [];
-let usedParticipantIds = [];
-
-async function initializeParticipantIds() {
+/* PARTICIPANT ID MANAGEMENT - Servidor centralizado */
+async function getNextParticipantId() {
   try {
-    const response = await fetch('participant_ids.json');
+    // Consultar al servidor para obtener el próximo ID único y compartido
+    const response = await fetch(ENDPOINT_URL + '?action=get_next_id');
     const data = await response.json();
-    availableParticipantIds = [...data.available_ids];
     
-    // Cargar IDs usados del localStorage
-    const usedKey = 'psycho_used_participant_ids';
-    const used = localStorage.getItem(usedKey);
-    if (used) {
-      usedParticipantIds = JSON.parse(used);
-      availableParticipantIds = availableParticipantIds.filter(id => !usedParticipantIds.includes(id));
+    if (data && data.id) {
+      console.log(`Assigned participant ID from server: ${data.id}`);
+      return data.id;
+    } else {
+      throw new Error('Invalid response from server');
     }
-    console.log(`Participant IDs initialized. Available: ${availableParticipantIds.length}, Used: ${usedParticipantIds.length}`);
   } catch(e) {
-    console.error('Error loading participant IDs:', e);
+    console.error('Error getting ID from server:', e);
+    // Fallback: generar ID temporal basado en timestamp
+    const fallbackId = Date.now() % 100000;
+    console.warn(`Using fallback ID: ${fallbackId}`);
+    return fallbackId;
   }
-}
-
-function getNextParticipantId() {
-  // Toma el primer ID disponible de la lista
-  if (availableParticipantIds.length === 0) {
-    console.error('No more participant IDs available!');
-    return null;
-  }
-  
-  const nextId = availableParticipantIds.shift();
-  usedParticipantIds.push(nextId);
-  
-  // Guardar cambios en localStorage
-  localStorage.setItem('psycho_used_participant_ids', JSON.stringify(usedParticipantIds));
-  
-  console.log(`Assigned participant ID: ${nextId}. Remaining: ${availableParticipantIds.length}`);
-  return nextId;
 }
 
 function sendToSheet(payload) {
@@ -574,9 +556,9 @@ async function loadConditionsAndPrepareBlocks() {
   }
 }
 
-/* FLUJO INICIAL: btnStart -> asignar participant_id+seed -> lanzar loadConditionsAndPrepareBlocks en background -> mostrar encuesta demográfica */
+/* FLUJO INICIAL: btnStart -> consultar servidor para ID -> asignar participant_id+seed -> lanzar loadConditionsAndPrepareBlocks en background -> mostrar encuesta demográfica */
 document.getElementById('btnStart').addEventListener('click', async () => {
-  participant_id = getNextParticipantId();
+  participant_id = await getNextParticipantId();
   const rnd = (window.crypto && crypto.getRandomValues) ? crypto.getRandomValues(new Uint32Array(2)) : [Math.floor(Math.random()*1e9),0];
   seed = `${participant_id}-${performance.now()}-${rnd[0]}-${rnd[1]}`;
   console.log('START session -> participant_id:', participant_id, ' seed:', seed);
@@ -1135,7 +1117,6 @@ function showEnd(){
 }
 
 /* Inicial */
-initializeParticipantIds();
 showWelcome();
 </script>
 </body>
