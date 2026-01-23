@@ -269,9 +269,8 @@ const BLOCK_PERMUTATIONS = [
 ];
 
 function getBlockOrder(participantId) {
-  // Para IDs grandes (timestamp), usamos módulo para obtener número 0-5 para contrabalanceo
-  // Esto distribuye equitativamente las 6 permutaciones independiente del tamaño del ID
-  const permIndex = participantId % 6;
+  // ID 1 -> índice 0, ID 2 -> índice 1, ..., ID 7 -> índice 0, etc.
+  const permIndex = (participantId - 1) % 6;
   return BLOCK_PERMUTATIONS[permIndex];
 }
 
@@ -558,9 +557,6 @@ async function loadConditionsAndPrepareBlocks() {
 
 /* FLUJO INICIAL: btnStart -> mostrar encuesta demográfica (ID se asigna DESPUÉS de completar el formulario) */
 document.getElementById('btnStart').addEventListener('click', async () => {
-  // iniciar carga de conditions en background (no await)
-  conditionsPromise = loadConditionsAndPrepareBlocks();
-
   // deshabilitar botón y mostrar pantalla demográfica
   document.getElementById('btnStart').disabled = true;
   showDemographicsScreen();
@@ -651,6 +647,9 @@ document.getElementById('btnDemSubmit').addEventListener('click', async () => {
   const rnd = (window.crypto && crypto.getRandomValues) ? crypto.getRandomValues(new Uint32Array(2)) : [Math.floor(Math.random()*1e9),0];
   seed = `${participant_id}-${performance.now()}-${rnd[0]}-${rnd[1]}`;
   console.log('Demographics submitted -> participant_id:', participant_id, ' seed:', seed);
+
+  // AHORA cargar condiciones con el participant_id correcto para contrabalanceo
+  conditionsPromise = loadConditionsAndPrepareBlocks();
 
   // construir payload para hoja "datos_demograficos"
   const payload = {
